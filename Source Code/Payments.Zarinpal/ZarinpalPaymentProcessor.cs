@@ -22,7 +22,16 @@ namespace NopFarsi.Payments.Zarinpal
 
     public class ZarinpalPaymentProcessor : BasePlugin, IPaymentMethod, IPlugin
     {
-
+        private readonly ILogger _logger;
+        private readonly HttpContextBase _httpContext;
+        private readonly ZarinpalSettings _zarinpalPaymentSettings;
+        private readonly ILocalizationService _localizationService;
+        private readonly ISettingService _settingService;
+        private readonly IWebHelper _webHelper;
+        private readonly IGenericAttributeService _genericAttributeService;
+        private readonly IOrderTotalCalculationService _orderTotalCalculationService;
+        private readonly IOrderService _orderService;
+        private readonly IOrderProcessingService _orderProcessingService;
         public ZarinpalPaymentProcessor(HttpContextBase httpContext, ZarinpalSettings zarinpalPaymentSettings, ILocalizationService localizationService, ISettingService settingService, IWebHelper webHelper, IGenericAttributeService genericAttributeService, IOrderTotalCalculationService orderTotalCalculationService, IOrderService orderService, IOrderProcessingService orderProcessingService, ILogger logger)
         {
             this._httpContext = httpContext;
@@ -183,19 +192,19 @@ namespace NopFarsi.Payments.Zarinpal
 
         public void GetPaymentInfoRoute(out string actionName, out string controllerName, out RouteValueDictionary routeValues)
         {
-            actionName = "PaymentInfo";
-            controllerName = "ZarinpalNopFarsi";
-            routeValues = new RouteValueDictionary
-			{
-				{
-					"Namespaces",
-					"NopFarsi.Payments.Zarinpal.Controllers"
-				},
-				{
-					"area",
-					null
-				}
-			};
+                actionName = "PaymentInfo";
+                controllerName = "ZarinpalNopFarsi";
+                routeValues = new RouteValueDictionary
+			    {
+				    {
+					    "Namespaces",
+					    "NopFarsi.Payments.Zarinpal.Controllers"
+				    },
+				    {
+					    "area",
+					    null
+				    }
+			    };
         }
 
 
@@ -212,7 +221,8 @@ namespace NopFarsi.Payments.Zarinpal
                 MerchantId = "",
                 PayementUrl = "https://www.zarinpal.com/pg/StartPay/{0}",
                 WebServiceUrl = "https://www.zarinpal.com/pg/services/WebGate/service",
-                IsToman = false
+                IsToman = false,
+                DisablePaymentInfo = true
             };
             this._settingService.SaveSetting<ZarinpalSettings>(zarinpalPaymentSettings, 0);
             LocalizationExtensions.AddOrUpdatePluginLocaleResource(this, "NopFarsi.Zarinpal.Fields.RedirectionTip", " به درگاه زرین‌پال متصل خواهید شد.", null);
@@ -223,6 +233,8 @@ namespace NopFarsi.Payments.Zarinpal
             LocalizationExtensions.AddOrUpdatePluginLocaleResource(this, "NopFarsi.Zarinpal.Fields.WebServiceUrl", "آدرس وب سرویس", null);
             LocalizationExtensions.AddOrUpdatePluginLocaleResource(this, "NopFarsi.Zarinpal.Fields.WebServiceUrl.Hint", "آدرس وب سرویس زرین‌پال برای ازتباط با درگاه پرداخت.", null);
             LocalizationExtensions.AddOrUpdatePluginLocaleResource(this, "NopFarsi.Zarinpal.Fields.IsToman", "محاسبه بر اساس تومان", null);
+            LocalizationExtensions.AddOrUpdatePluginLocaleResource(this, "NopFarsi.Zarinpal.Fields.DisablePaymentInfo", "عدم نمایش صفحه اطلاعات روش پرداخت", null);
+            LocalizationExtensions.AddOrUpdatePluginLocaleResource(this, "NopFarsi.Zarinpal.Fields.DisablePaymentInfo.Hint", "با روشن کردن این گزینه صفحه مربوط به اطلاعات روش پرداخت به کاربر نمایش داده نمی شود.(به درگاه زرینپال متصل خواهید شد)", null);
             LocalizationExtensions.AddOrUpdatePluginLocaleResource(this, "NopFarsi.Zarinpal.PaymentMethodDescription", "پرداخت توسط درگاه زرین‌پال", null);
             LocalizationExtensions.AddOrUpdatePluginLocaleResource(this, "NopFarsi.Zarinpal.Verify.SuccessMessage", "صورتحساب با موفقیت پرداخت گردید.\r\nکد پیگیری : {0}", null);
             LocalizationExtensions.AddOrUpdatePluginLocaleResource(this, "NopFarsi.Zarinpal.Verify.FailureMessage", "پردخت  ناموفق بود.\r\nشرح خطا : {0}", null);
@@ -256,6 +268,8 @@ namespace NopFarsi.Payments.Zarinpal
             LocalizationExtensions.DeletePluginLocaleResource(this, "NopFarsi.Zarinpal.Fields.MerchantId.Hint");
             LocalizationExtensions.DeletePluginLocaleResource(this, "NopFarsi.Zarinpal.Fields.PayementUrl");
             LocalizationExtensions.DeletePluginLocaleResource(this, "NopFarsi.Zarinpal.Fields.PayementUrl.Hint");
+            LocalizationExtensions.DeletePluginLocaleResource(this, "NopFarsi.Zarinpal.Fields.DisablePaymentInfo");
+            LocalizationExtensions.DeletePluginLocaleResource(this, "NopFarsi.Zarinpal.Fields.DisablePaymentInfo.Hint");
             LocalizationExtensions.DeletePluginLocaleResource(this, "NopFarsi.Zarinpal.PaymentMethodDescription");
             LocalizationExtensions.DeletePluginLocaleResource(this, "NopFarsi.Zarinpal.Payment.Description");
             LocalizationExtensions.DeletePluginLocaleResource(this, "NopFarsi.Zarinpal.Verify.SuccessMessage");
@@ -338,7 +352,14 @@ namespace NopFarsi.Payments.Zarinpal
         {
             get
             {
-                return false;
+                if (_zarinpalPaymentSettings.DisablePaymentInfo)
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
             }
         }
 
@@ -353,33 +374,5 @@ namespace NopFarsi.Payments.Zarinpal
 
 
         private const string GenericAttributeAuthority = "ZarinpalAuthority";
-
-        private readonly ILogger _logger;
-
-        private readonly HttpContextBase _httpContext;
-
-
-        private readonly ZarinpalSettings _zarinpalPaymentSettings;
-
-
-        private readonly ILocalizationService _localizationService;
-
-
-        private readonly ISettingService _settingService;
-
-
-        private readonly IWebHelper _webHelper;
-
-
-        private readonly IGenericAttributeService _genericAttributeService;
-
-
-        private readonly IOrderTotalCalculationService _orderTotalCalculationService;
-
-
-        private readonly IOrderService _orderService;
-
-
-        private readonly IOrderProcessingService _orderProcessingService;
     }
 }
